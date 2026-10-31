@@ -44,3 +44,7 @@ Please use fictional data while evaluating this prototype. Review the security d
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE).
+
+
+On Windows, copied clipboard text is cleared after 30 seconds if it has not been replaced. On other platforms, clipboard contents are not automatically cleared yet. Wait for the encrypted-save confirmation before closing the app.
+

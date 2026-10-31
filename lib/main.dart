@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/material.dart' as material show Text;
@@ -12,6 +14,20 @@ void main() {
 }
 
 final ValueNotifier<bool> _english = ValueNotifier<bool>(false);
+int _clipboardCopyGeneration = 0;
+
+Future<void> _copySensitiveValue(String value) async {
+  await Clipboard.setData(ClipboardData(text: value));
+  if (!Platform.isWindows) return;
+  final generation = ++_clipboardCopyGeneration;
+  Future<void>.delayed(const Duration(seconds: 30), () async {
+    if (generation != _clipboardCopyGeneration) return;
+    final current = await Clipboard.getData(Clipboard.kTextPlain);
+    if (current?.text == value) {
+      await Clipboard.setData(const ClipboardData(text: ''));
+    }
+  });
+}
 
 String _tx(String value) {
   if (!_english.value) return value;
@@ -294,16 +310,25 @@ class _VaultHomePageState extends State<VaultHomePage>
   final Set<int> _selectedIndices = {};
   bool _selectionMode = false;
 
-  void _persistVault() {
+  Future<void> _persistVault() async {
     final contents = VaultContents(
       entries: List<VaultEntry>.of(_entries),
       trash: List<VaultEntry>.of(_trash),
     );
-    widget.onVaultChanged(contents).catchError((Object _) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('加密保存失败，请检查磁盘空间后重试。')));
-    });
+    try {
+      await widget.onVaultChanged(contents);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加密保存成功')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加密保存失败，请检查磁盘空间后重试。')),
+        );
+      }
+    }
   }
 
   Future<void> _addEntry() async {
@@ -1032,7 +1057,7 @@ class _EntryCardState extends State<_EntryCard> with _LocaleAware<_EntryCard> {
   bool _showPassword = false;
 
   Future<void> _copyValue(String value, String label) async {
-    await Clipboard.setData(ClipboardData(text: value));
+    await _copySensitiveValue(value);
     if (!mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text('$label已复制')));
@@ -1199,7 +1224,7 @@ class _EntryDetailPageState extends State<EntryDetailPage>
   }
 
   Future<void> _copyValue(String value, String label) async {
-    await Clipboard.setData(ClipboardData(text: value));
+    await _copySensitiveValue(value);
     if (!mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text('$label已复制')));
@@ -1750,5 +1775,8 @@ class _EmptyVault extends StatelessWidget {
     );
   }
 }
+
+
+
 
 
