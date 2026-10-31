@@ -1,5 +1,4 @@
-import 'dart:io' show Platform;
-
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/material.dart' as material show Text;
@@ -18,7 +17,7 @@ int _clipboardCopyGeneration = 0;
 
 Future<void> _copySensitiveValue(String value) async {
   await Clipboard.setData(ClipboardData(text: value));
-  if (!Platform.isWindows) return;
+  if (defaultTargetPlatform != TargetPlatform.windows) return;
   final generation = ++_clipboardCopyGeneration;
   Future<void>.delayed(const Duration(seconds: 30), () async {
     if (generation != _clipboardCopyGeneration) return;
@@ -1775,6 +1774,8 @@ class _EmptyVault extends StatelessWidget {
     );
   }
 }
+
+
 
 
 
